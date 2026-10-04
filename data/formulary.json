@@ -1,0 +1,17 @@
+[
+  {"generic_name": "amoxicillin", "aliases": ["amoxil", "moxacil"], "strengths_mg": [250, 500], "max_daily_mg": 3000, "routes": ["oral"], "max_duration_days": 14},
+  {"generic_name": "paracetamol", "aliases": ["acetaminophen", "napa", "ace", "tylenol"], "strengths_mg": [500, 650], "max_daily_mg": 4000, "routes": ["oral"], "max_duration_days": 10},
+  {"generic_name": "ibuprofen", "aliases": ["advil", "brufen"], "strengths_mg": [200, 400], "max_daily_mg": 2400, "routes": ["oral"], "max_duration_days": 10},
+  {"generic_name": "metformin", "aliases": ["glucophage", "comet"], "strengths_mg": [500, 850, 1000], "max_daily_mg": 2550, "routes": ["oral"], "max_duration_days": 90},
+  {"generic_name": "amlodipine", "aliases": ["norvasc", "amdocal"], "strengths_mg": [5, 10], "max_daily_mg": 10, "routes": ["oral"], "max_duration_days": 90},
+  {"generic_name": "omeprazole", "aliases": ["losec", "seclo", "prilosec"], "strengths_mg": [20, 40], "max_daily_mg": 80, "routes": ["oral"], "max_duration_days": 56},
+  {"generic_name": "azithromycin", "aliases": ["zithromax", "zimax"], "strengths_mg": [250, 500], "max_daily_mg": 500, "routes": ["oral"], "max_duration_days": 5},
+  {"generic_name": "ciprofloxacin", "aliases": ["cipro", "ciprocin"], "strengths_mg": [250, 500, 750], "max_daily_mg": 1500, "routes": ["oral"], "max_duration_days": 14},
+  {"generic_name": "atorvastatin", "aliases": ["lipitor", "atova"], "strengths_mg": [10, 20, 40, 80], "max_daily_mg": 80, "routes": ["oral"], "max_duration_days": 90},
+  {"generic_name": "losartan", "aliases": ["cozaar", "angilock"], "strengths_mg": [25, 50, 100], "max_daily_mg": 100, "routes": ["oral"], "max_duration_days": 90},
+  {"generic_name": "cetirizine", "aliases": ["zyrtec", "alatrol"], "strengths_mg": [10], "max_daily_mg": 10, "routes": ["oral"], "max_duration_days": 30},
+  {"generic_name": "salbutamol", "aliases": ["albuterol", "ventolin", "azmasol"], "strengths_mg": [0.1], "max_daily_mg": 0.8, "routes": ["inhaled"], "max_duration_days": 30},
+  {"generic_name": "warfarin", "aliases": ["coumadin"], "strengths_mg": [1, 2, 5], "max_daily_mg": 10, "routes": ["oral"], "max_duration_days": 30, "high_alert": true},
+  {"generic_name": "insulin glargine", "aliases": ["lantus", "glargine"], "strengths_mg": [], "max_daily_mg": null, "routes": ["injection"], "max_duration_days": 30, "high_alert": true},
+  {"generic_name": "tramadol", "aliases": ["ultram", "tramal"], "strengths_mg": [50], "max_daily_mg": 400, "routes": ["oral"], "max_duration_days": 5, "controlled": true}
+]
