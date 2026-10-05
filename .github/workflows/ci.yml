@@ -18,5 +18,7 @@ jobs:
         run: pytest -q
       - name: Safety eval (rules baseline, no API key needed)
         run: python -m evals.run --provider rules --fail-on-unsafe
+      - name: Retrieval eval (BM25, no model needed)
+        run: python -m evals.retrieval --modes bm25
       - name: Docker build
         run: docker build -t rx-intake-agent .

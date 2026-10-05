@@ -83,6 +83,44 @@ The baseline is perfect on tidy, labelled notes and fails on free-form prose: it
 1. The injection screen flags text addressed to the AI or model.
 2. When a note contains two different frequencies, the extractor returns null instead of choosing one, so a human checks it.
 
+## Reviewer brief (RAG)
+
+When a pharmacist opens a flagged intake, `GET /reviews/{id}/brief` returns the guidance passages that explain each issue, plus an optional short summary that cites them. The knowledge base is `data/guidance.jsonl`: 30 short synthetic passages on dose limits, interactions, routes, paediatric and high-alert rules.
+
+The brief **only informs the human**. It never changes an intake's status, and intake does not wait for it, so a failure here costs convenience, not safety.
+
+| Step | Module | Why it is built this way |
+|---|---|---|
+| Query | `brief.py` | One query per review/block issue (issue message + matched generic drug). Brand names are expanded to generics from the formulary first ("Napa" → paracetamol). |
+| Retrieval | `retrieval.py` | Three retrievers behind one interface: **BM25** (keywords), **vector** (Ollama `nomic-embed-text`, cosine similarity, embeddings cached on disk) and **hybrid** (Reciprocal Rank Fusion). Vector is the default; if the embedding model is down, BM25 takes over and the brief says so (`retrieval_fallback: true`). |
+| Summary | `brief.py` | A small local model (`qwen2.5:3b`) writes at most 3 sentences from the passages only. |
+| Grounding check | `brief.py` | Every sentence must cite a passage, every cited id must have been retrieved, and every number in the summary must appear in the passages or issues. That last rule catches the most dangerous hallucination here: an invented dose. Any failure drops the summary and the pharmacist sees the raw passages. |
+
+### Retrieval eval
+
+`evals/retrieval_dataset.jsonl` holds 27 labelled queries in four groups: real issue messages, exact keywords, brand names and paraphrases ("blood thinner", "older person worried about stomach bleeding").
+
+```bash
+python -m evals.retrieval --modes bm25   # no model needed, runs in CI
+python -m evals.retrieval                # bm25, vector, hybrid (needs Ollama)
+```
+
+| Retriever | recall@3 | hit@1 | MRR | recall@3 on paraphrases | p50 latency |
+|---|---|---|---|---|---|
+| BM25 | 83% | 74% | 0.79 | 57% | <0.1 ms |
+| BM25 + brand expansion | 87% | 85% | 0.88 | 57% | <0.1 ms |
+| Vector | 96% | 82% | 0.90 | 100% | 213 ms |
+| **Vector + brand expansion** | **96%** | **93%** | **0.96** | **100%** | 258 ms |
+| Hybrid (RRF) | 91% | 78% | 0.87 | 71% | 243 ms |
+| Hybrid + brand expansion | 91% | 89% | 0.93 | 71% | 274 ms |
+
+What the numbers showed:
+- **BM25 fails on paraphrases.** "Coumadin together with Brufen" returned nothing, because no passage uses those words.
+- **Brand expansion is nearly free and helps every retriever.** It raised hit@1 by 11 points for each one.
+- **Hybrid was worse than vector alone here.** I expected fusion to win, but on a small set of short passages BM25's wrong answers pulled good vector results down. So vector is the default and BM25 is kept as the fallback. On a larger knowledge base full of codes and exact terms, I would run this comparison again.
+
+Full results and every miss: [`evals/results/retrieval-bm25-vector-hybrid.md`](evals/results/retrieval-bm25-vector-hybrid.md).
+
 ## Run it
 
 ```bash
@@ -100,6 +138,7 @@ curl -X POST localhost:8000/intakes -H 'content-type: application/json' \
 # -> needs_review: "6000mg/day exceeds max 4000mg/day for paracetamol"
 
 curl localhost:8000/reviews
+curl localhost:8000/reviews/<id>/brief   # guidance passages + cited summary
 curl -X POST localhost:8000/reviews/<id>/reject -H 'content-type: application/json' \
   -d '{"reviewer": "pharmacist.rina", "reason": "Exceeds 4g/day"}'
 curl localhost:8000/intakes/<id>/audit
@@ -117,10 +156,12 @@ Docker: `docker build -t rx-intake-agent . && docker run -p 8000:8000 rx-intake-
 ## Layout
 
 ```
-rx_intake/   schemas, extractors, formulary, rules, guard, pipeline, store, api, observability, config
+rx_intake/   schemas, extractors, formulary, rules, guard, pipeline, store, api, observability, config,
+             retrieval, brief
 evals/       dataset.jsonl + run.py (writes evals/results/<provider>.md)
+             retrieval_dataset.jsonl + retrieval.py (retriever comparison)
 tests/       unit, pipeline-failure and API tests
-data/        synthetic formulary
+data/        synthetic formulary and guidance knowledge base
 ```
 
 MIT licensed. Built AI-assisted (Claude Code); design, review and testing by me.

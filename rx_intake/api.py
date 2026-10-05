@@ -8,7 +8,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from . import observability as obs
-from .config import build_pipeline
+from .brief import ReviewBrief
+from .config import build_brief_builder, build_pipeline
 from .schemas import IntakeResult
 from .store import ReviewError, Store
 
@@ -17,6 +18,7 @@ obs.configure(os.getenv("RX_LOG_LEVEL", "INFO"))
 app = FastAPI(title="rx-intake-agent", version="0.1.0")
 app.state.pipeline = build_pipeline()
 app.state.store = Store(os.getenv("RX_DB_PATH", ":memory:"))
+app.state.briefs = build_brief_builder(app.state.pipeline.formulary)
 
 
 class IntakeRequest(BaseModel):
@@ -61,6 +63,15 @@ def approve(intake_id: str, decision: Decision) -> IntakeResult:
 @app.post("/reviews/{intake_id}/reject", response_model=IntakeResult)
 def reject(intake_id: str, decision: Decision) -> IntakeResult:
     return _decide(intake_id, False, decision)
+
+
+@app.get("/reviews/{intake_id}/brief", response_model=ReviewBrief)
+def review_brief(intake_id: str) -> ReviewBrief:
+    """Guidance passages (and a cited summary) for the pharmacist. Built on request, so intake stays fast."""
+    result = app.state.store.get(intake_id)
+    if result is None:
+        raise HTTPException(404, "not found")
+    return app.state.briefs.build(result)
 
 
 @app.get("/intakes/{intake_id}/audit")

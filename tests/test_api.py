@@ -1,6 +1,8 @@
 import os
 
 os.environ["RX_PROVIDER"] = "rules"
+os.environ["RX_RETRIEVER"] = "bm25"  # no embedding model in CI
+os.environ["RX_BRIEF_SUMMARY"] = "off"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -43,3 +45,18 @@ def test_decision_requires_reviewer_and_reason():
 
 def test_unknown_intake_is_404():
     assert client.get("/intakes/doesnotexist").status_code == 404
+
+
+def test_brief_returns_guidance_for_flagged_intake():
+    intake = client.post("/intakes", json={"text": OVERDOSE}).json()
+    r = client.get(f"/reviews/{intake['id']}/brief")
+    assert r.status_code == 200
+    brief = r.json()
+    assert brief["passages"][0]["id"] == "G01"  # paracetamol daily limit
+    assert brief["summary_status"] == "skipped"
+    # Reading a brief never changes the decision state.
+    assert client.get(f"/intakes/{intake['id']}").json()["status"] == "needs_review"
+
+
+def test_brief_unknown_intake_is_404():
+    assert client.get("/reviews/nope/brief").status_code == 404
